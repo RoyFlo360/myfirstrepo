@@ -1,0 +1,43 @@
+name: Test Matrix
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test-matrix:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        test-type: [unit, integration, selenium]
+        include:
+          - test-type: all
+            timeout: 900
+          - test-type: unit
+            timeout: 300
+          - test-type: integration
+            timeout: 600
+          - test-type: selenium
+            timeout: 600
+    
+    steps:
+    - name: Checkout main repository
+      uses: actions/checkout@v4
+      
+    - name: Run ${{ matrix.test-type }} Tests
+      id: test-run
+      uses: RoyFlo360/ephemeral_poc@main
+      with:
+        test-type: ${{ matrix.test-type }}
+        timeout: ${{ matrix.timeout }}
+        upload-results: 'true'
+        
+    - name: Test Results Summary
+      if: always()
+      run: |
+        echo "## Test Results for ${{ matrix.test-type }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Status**: ${{ steps.test-run.outputs.success == 'true' && '✅ PASSED' || '❌ FAILED' }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Logs**: ${{ steps.test-run.outputs.logs }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
