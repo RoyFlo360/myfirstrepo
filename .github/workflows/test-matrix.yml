@@ -13,8 +13,8 @@ jobs:
       matrix:
         test-type: [unit, integration, selenium]
         include:
-          - test-type: all
-            timeout: 900
+          # - test-type: all
+          #  timeout: 900
           - test-type: unit
             timeout: 300
           - test-type: integration
