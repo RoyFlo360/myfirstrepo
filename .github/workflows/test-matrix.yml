@@ -1,0 +1,153 @@
+name: Test Matrix
+
+on:
+  push:
+    branches: [ master, main, dev, qa ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  test-matrix:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        test-type: [unit, integration, selenium]
+        include:
+          # - test-type: all
+          #  timeout: 900
+          - test-type: unit
+            timeout: 300
+          - test-type: integration
+            timeout: 600
+          - test-type: selenium
+            timeout: 600
+    
+    steps:
+    - name: Checkout main repository
+      uses: actions/checkout@v4
+      
+    - name: Run ${{ matrix.test-type }} Tests
+      id: test-run
+      uses: RoyFlo360/ephemeral_poc@main
+      with:
+        test-type: ${{ matrix.test-type }}
+        timeout: ${{ matrix.timeout }}
+        upload-results: 'true'
+        
+    - name: Test Results Summary
+      if: always()
+      run: |
+        echo "## Test Results for ${{ matrix.test-type }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Status**: ${{ steps.test-run.outputs.success == 'true' && '✅ PASSED' || '❌ FAILED' }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Logs**: ${{ steps.test-run.outputs.logs }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+    - name: Update PR Comment
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const success = '${{ steps.test-run.outputs.success }}' === 'true';
+          const logs = `${{ steps.test-run.outputs.logs }}`;
+          const testType = '${{ matrix.test-type }}';
+          
+          // Get existing comments
+          const comments = await github.rest.issues.listComments({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: context.issue.number,
+          });
+          
+          // Find our bot comment (look for the specific header)
+          const botComment = comments.data.find(comment => 
+            comment.user.type === 'Bot' && 
+            comment.body.includes('🧪 Test Matrix Summary Report')
+          );
+          
+          // Create or update the comment
+          const now = new Date();
+          // Convert to Mexico City timezone (UTC-6 or UTC-5 depending on DST)
+          const mexicoTime = new Date(now.toLocaleString("en-US", {timeZone: "America/Mexico_City"}));
+          const timestamp = mexicoTime.toLocaleDateString("en-GB", {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric'
+          }) + ' ' + mexicoTime.toLocaleTimeString("en-US", {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+          });
+          const status = success ? '✅ PASSED' : '❌ FAILED';
+          
+          // Try to extract status from existing comment to preserve other test results
+          let unitStatus = '⏳ Pending';
+          let integrationStatus = '⏳ Pending';
+          let seleniumStatus = '⏳ Pending';
+          
+          if (botComment) {
+            const existingBody = botComment.body;
+            const unitMatch = existingBody.match(/\| Unit Tests \| ([^|]+) \|/);
+            const integrationMatch = existingBody.match(/\| Integration Tests \| ([^|]+) \|/);
+            const seleniumMatch = existingBody.match(/\| Selenium Tests \| ([^|]+) \|/);
+            
+            if (unitMatch) unitStatus = unitMatch[1].trim();
+            if (integrationMatch) integrationStatus = integrationMatch[1].trim();
+            if (seleniumMatch) seleniumStatus = seleniumMatch[1].trim();
+          }
+          
+          // Update the current test status
+          if (testType === 'unit') unitStatus = status;
+          if (testType === 'integration') integrationStatus = status;
+          if (testType === 'selenium') seleniumStatus = status;
+          
+          // Determine overall status
+          const allCompleted = !unitStatus.includes('⏳') && !integrationStatus.includes('⏳') && !seleniumStatus.includes('⏳');
+          const allPassed = unitStatus.includes('✅') && integrationStatus.includes('✅') && seleniumStatus.includes('✅');
+          const overallStatus = allCompleted ? (allPassed ? '🎉 ALL TESTS PASSED' : '❌ SOME TESTS FAILED') : '⏳ TESTS RUNNING';
+          
+          let body = `## 🧪 Test Matrix Summary Report
+          
+          **Overall Status**: ${overallStatus}
+          **Last Updated**: ${timestamp}
+          
+          ### Test Results
+          
+          | Test Type | Status | Test Logs |
+          |-----------|--------|-----------|
+          | Unit Tests | ${unitStatus} | <details> <summary>View Unit test logs</summary> \`\`\`${unitLogs}\`\`\` </details> |
+          | Integration Tests | ${integrationStatus} | <details> <summary>View Integration test logs</summary> \`\`\`${integrationLogs}\`\`\` </details> |
+          | Selenium Tests | ${seleniumStatus} | <details> <summary>View Web UI test logs</summary> \`\`\`${seleniumLogs}\`\`\` </details> |
+          
+          ### Latest Test Details
+          
+          **Current Test**: \`${testType}\`
+          **Status**: ${status}
+          
+          <details>
+          <summary>View ${testType} test logs</summary>
+          
+          \`\`\`
+          ${logs}
+          \`\`\`
+          </details>
+          
+          ---
+          *Generated by Ephemeral Test Suite*`;
+          
+          if (botComment) {
+            // Update existing comment
+            await github.rest.issues.updateComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: botComment.id,
+              body: body
+            });
+          } else {
+            // Create new comment
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: body
+            });
+          }

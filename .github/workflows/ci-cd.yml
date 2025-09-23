@@ -1,0 +1,89 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ master, main, dev, qa]
+  pull_request:
+    branches: [ master ]
+  release:
+    types: [ published ]
+
+env:
+  TEST_REPO: RoyFlo360/ephemeral_poc
+  TEST_BRANCH: main
+
+jobs:
+  # Quick unit tests for fast feedback
+  unit-tests:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      
+    - name: Run Unit Tests
+      uses: ${{ env.TEST_REPO }}@${{ env.TEST_BRANCH }}
+      with:
+        test-type: 'unit'
+        timeout: '300'
+        
+  # Integration tests for database functionality
+  integration-tests:
+    runs-on: ubuntu-latest
+    needs: unit-tests
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      
+    - name: Run Integration Tests
+      uses: ${{ env.TEST_REPO }}@${{ env.TEST_BRANCH }}
+      with:
+        test-type: 'integration'
+        timeout: '600'
+        
+  # Selenium tests for UI functionality
+  selenium-tests:
+    runs-on: ubuntu-latest
+    needs: unit-tests
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      
+    - name: Run Selenium Tests
+      uses: ${{ env.TEST_REPO }}@${{ env.TEST_BRANCH }}
+      with:
+        test-type: 'selenium'
+        timeout: '600'
+        
+  # Full test suite for main branch
+  full-test-suite:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    needs: [unit-tests, integration-tests, selenium-tests]
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      
+    - name: Run All Tests
+      uses: ${{ env.TEST_REPO }}@${{ env.TEST_BRANCH }}
+      with:
+        test-type: 'all'
+        timeout: '900'
+        
+  # Build and deploy (example)
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    needs: [unit-tests, integration-tests, selenium-tests]
+    if: github.ref == 'refs/heads/main'
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      
+    - name: Build Application
+      run: |
+        echo "Building your application..."
+        # Add your build commands here
+        
+    - name: Deploy
+      run: |
+        echo "Deploying your application..."
+        # Add your deployment commands here

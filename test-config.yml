@@ -1,0 +1,86 @@
+# Ephemeral Test Suite Configuration
+# This file contains configuration for the test suite integration
+
+test_suite:
+  repository: RoyFlo360/ephemeral_poc  # Update this to your test repository
+  branch: main                            # Branch to use for the test suite
+  
+# Default test settings
+defaults:
+  timeout: 600                            # Default timeout in seconds
+  upload_results: true                    # Whether to upload test results as artifacts
+  working_directory: '.'                  # Working directory for tests
+  
+# Test type specific timeouts (in seconds)
+timeouts:
+  unit: 300                               # Unit tests timeout
+  integration: 600                        # Integration tests timeout
+  selenium: 600                           # Selenium tests timeout
+  all: 900                                # All tests timeout
+  
+# Environment variables for tests
+environment:
+  # Add any environment variables your tests need
+  # POSTGRES_HOST: postgres
+  # POSTGRES_PORT: 5432
+  # POSTGRES_DB: test
+  # POSTGRES_USER: test
+  # POSTGRES_PASSWORD: test
+  
+# Test matrix configuration
+matrix:
+  # Test types to run in parallel
+  test_types:
+    - unit
+    - integration
+    - selenium
+  
+  # Operating systems to test on
+  os:
+    - ubuntu-latest
+    # - windows-latest
+    # - macos-latest
+  
+  # Python versions to test
+  python_versions:
+    - '3.9'
+    - '3.10'
+    - '3.11'
+    # - '3.12'
+
+# Notification settings
+notifications:
+  # Slack webhook for test results
+  # slack_webhook: ${{ secrets.SLACK_WEBHOOK }}
+  
+  # Email notifications
+  # email: ${{ secrets.EMAIL }}
+  
+  # GitHub issue creation on test failure
+  create_issue_on_failure: false
+
+# Custom test commands (optional)
+custom_commands:
+  # Pre-test setup
+  pre_test: |
+    echo "Setting up test environment..."
+    # Add any pre-test setup commands here
+  
+  # Post-test cleanup
+  post_test: |
+    echo "Cleaning up test environment..."
+    # Add any post-test cleanup commands here
+
+# Test result processing
+result_processing:
+  # Generate test reports
+  generate_reports: true
+  
+  # Upload to external services
+  upload_to:
+    # - s3
+    # - azure
+    # - gcs
+  
+  # Test result retention (days)
+  retention_days: 3
