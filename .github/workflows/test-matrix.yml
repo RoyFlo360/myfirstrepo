@@ -112,11 +112,11 @@ jobs:
           
           ### Test Results
           
-          | Test Type | Status |
-          |-----------|--------|
-          | Unit Tests | ${unitStatus} |
-          | Integration Tests | ${integrationStatus} |
-          | Selenium Tests | ${seleniumStatus} |
+          | Test Type | Status | Test Logs |
+          |-----------|--------|-----------|
+          | Unit Tests | ${unitStatus} | <details> <summary>View Unit test logs</summary> \`\`\`${unitLogs}\`\`\` </details> |
+          | Integration Tests | ${integrationStatus} | <details> <summary>View Integration test logs</summary> \`\`\`${integrationLogs}\`\`\` </details> |
+          | Selenium Tests | ${seleniumStatus} | <details> <summary>View Web UI test logs</summary> \`\`\`${seleniumLogs}\`\`\` </details> |
           
           ### Latest Test Details
           
