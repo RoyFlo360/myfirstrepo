@@ -65,7 +65,18 @@ jobs:
           );
           
           // Create or update the comment
-          const timestamp = new Date().toISOString();
+          const now = new Date();
+          // Convert to Mexico City timezone (UTC-6 or UTC-5 depending on DST)
+          const mexicoTime = new Date(now.toLocaleString("en-US", {timeZone: "America/Mexico_City"}));
+          const timestamp = mexicoTime.toLocaleDateString("en-GB", {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric'
+          }) + ' ' + mexicoTime.toLocaleTimeString("en-US", {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+          });
           const status = success ? '✅ PASSED' : '❌ FAILED';
           
           // Try to extract status from existing comment to preserve other test results
@@ -101,11 +112,11 @@ jobs:
           
           ### Test Results
           
-          | Test Type | Status | Last Run |
-          |-----------|--------|----------|
-          | Unit Tests | ${unitStatus} | ${testType === 'unit' ? timestamp : 'Not started'} |
-          | Integration Tests | ${integrationStatus} | ${testType === 'integration' ? timestamp : 'Not started'} |
-          | Selenium Tests | ${seleniumStatus} | ${testType === 'selenium' ? timestamp : 'Not started'} |
+          | Test Type | Status |
+          |-----------|--------|
+          | Unit Tests | ${unitStatus} |
+          | Integration Tests | ${integrationStatus} |
+          | Selenium Tests | ${seleniumStatus} |
           
           ### Latest Test Details
           
